@@ -47,8 +47,8 @@ print_msg:
     je      .return
     call    print_char
     jmp     .loop
-    popa
 .return:
+    popa
     ret
 
 SCREEN_ROWS db 24
