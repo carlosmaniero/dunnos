@@ -49,7 +49,7 @@ breakpoint:
     call    print_string
 
     call    read_char
-.ret
+.ret:
     popa
     ret
 
