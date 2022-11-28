@@ -1,3 +1,8 @@
+;;; Copyright (c) 2022 Maniero
+
+;;; Clear the screen
+;;;
+;;; this function does not expect any register to be set
 screen_clear:
     call    reset_cursor_position
     pusha
@@ -20,11 +25,18 @@ screen_clear:
     popa
     jmp     reset_cursor_position
 
+;;; Set the cursor position at (0, 0) position
+;;;
+;;; this function does not expect any register to be set
 reset_cursor_position:
-    mov     dh, 0               ; rows
-    mov     dl, 0               ; columns
+    mov     dh, 0               ; row
+    mov     dl, 0               ; column
     jmp     set_cursor_position
 
+;;; set the cursor position
+;;;
+;;; DH = row
+;;; DL = column
 set_cursor_position:
     pusha
     mov     ah, 0x2
@@ -33,13 +45,21 @@ set_cursor_position:
     popa
     ret
 
+;;; print a single char
+;;;
+;;; AL = char to be printed
 print_char:
+    pusha
     mov     ah, 0x0E
     mov     bh, 0
     int     0x10
+    popa
     ret
 
-print_msg:
+;;; Print a zero-ended string
+;;;
+;;; SI = the string
+print_string:
     pusha
 .loop:
     lodsb
