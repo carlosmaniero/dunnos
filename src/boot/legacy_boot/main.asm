@@ -5,6 +5,7 @@ bits 16                         ; Real mode is 16 bits
 jmp start
 
 %include "./stdout.asm"
+%include "./stdin.asm"
 
 ;;; Application entrypoint
 start:
@@ -16,6 +17,8 @@ start:
     call    print_debug_status
 
     call    breakpoint
+
+    call    print_nl
 
     hlt
     jmp     $
@@ -44,6 +47,8 @@ breakpoint:
 
     mov     si, BOOTLOADER_DEBUG_BREAKPOINT
     call    print_string
+
+    call    read_char
 .ret
     popa
     ret

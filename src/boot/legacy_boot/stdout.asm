@@ -56,6 +56,17 @@ print_char:
     popa
     ret
 
+;;; print a new line
+print_nl:
+    pusha
+    mov     al, 10
+    call    print_char
+    mov     al, 13
+    call    print_char
+    popa
+    ret
+
+
 ;;; Print a zero-ended string
 ;;;
 ;;; SI = the string
