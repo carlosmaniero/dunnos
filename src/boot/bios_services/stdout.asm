@@ -1,5 +1,6 @@
 ;;; Copyright (c) 2022 Maniero
-
+%ifndef BOOT_BIOS_SERVICE_STDOUT
+    %define BOOT_BIOS_SERVICE_STDOUT
 ;;; Clear the screen
 ;;;
 ;;; this function does not expect any register to be set
@@ -84,3 +85,4 @@ print_string:
 
 SCREEN_ROWS db 24
 SCREEN_COLS db 79
+%endif
