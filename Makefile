@@ -9,10 +9,10 @@ ASSEMBLER_FLAGS = -f elf64
 BOOTLOADER_FILES := src/boot/multiboot/multiboot_header.asm src/boot/boot.asm
 BOOTLOADER_BINS := $(BOOTLOADER_FILES:src/%.asm=build/%.o)
 
-GRUB_CONFIG=grub.cfg
+GRUB_CONFIG = grub.cfg
 
 ISO_BUILD_PATH = build/iso
-GRUB_PATH= ${ISO_BUILD_PATH}/boot/grub/
+GRUB_PATH = ${ISO_BUILD_PATH}/boot/grub/
 KERNEL_PATH = ${ISO_BUILD_PATH}/boot
 KERNEL_BIN = ${KERNEL_PATH}/kernel.bin
 
