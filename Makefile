@@ -21,17 +21,19 @@ ISO = build/dunnos.iso
 all: ${ISO}
 
 build/%.o: src/%.asm
-	@echo "Compiling assembly file $@"
-	mkdir -p ${shell dirname $@}
-	${ASSEMBLER} ${ASSEMBLER_FLAGS} $< -o $@
+	@echo "Compiling assembly file: $@"
+	@mkdir -p ${shell dirname $@}
+	@${ASSEMBLER} ${ASSEMBLER_FLAGS} $< -o $@
 
 $(KERNEL_BIN): $(BOOTLOADER_BINS)
-	mkdir -p ${KERNEL_PATH}
-	ld -n -o ${KERNEL_BIN} -T linker.ld $^
+	@echo "Create kernel bin: $@"
+	@mkdir -p ${KERNEL_PATH}
+	@ld -n -o ${KERNEL_BIN} -T linker.ld $^
 
 $(ISO): $(KERNEL_BIN)
-	mkdir -p ${GRUB_PATH}
-	cp ${GRUB_CONFIG} ${GRUB_PATH}
-	grub-mkrescue -o ${ISO} ${ISO_BUILD_PATH}
+	@echo "Making ISO image: $@"
+	@mkdir -p ${GRUB_PATH}
+	@cp ${GRUB_CONFIG} ${GRUB_PATH}
+	@grub-mkrescue -o ${ISO} ${ISO_BUILD_PATH}
 
 # end
