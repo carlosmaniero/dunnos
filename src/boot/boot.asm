@@ -1,7 +1,7 @@
 global start
 
 VGA_START equ 0xb8000
-VGA_END   equ VGA_START + 0x1000
+VGA_END   equ VGA_START + 80 * 25 * 2
 VGA_DEFAULT_COLOR equ 0x3000
 
 bits 32
