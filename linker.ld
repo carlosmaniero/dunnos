@@ -1,15 +1,28 @@
 ENTRY(start)
 
 SECTIONS {
-    . = 1M;
+    . = 0x00100000;
+	_kernel_start = .;
 
     .boot :
     {
         *(.multiboot_header)
     }
 
-    .text :
+    . += 0xC0000000;
+
+    .text ALIGN (4k) : AT (ADDR (.text) - 0xC0000000)
     {
         *(.text)
+    }
+
+    .data ALIGN (4K) : AT (ADDR (.data) - 0xC0000000)
+    {
+        *(.data)
+    }
+
+    .bss ALIGN (4K) : AT (ADDR (.bss) - 0xC0000000)
+    {
+        *(.bss)
     }
 }
