@@ -4,7 +4,7 @@
 .PHONY = all
 
 ASSEMBLER = nasm
-ASSEMBLER_FLAGS = -f elf64
+ASSEMBLER_FLAGS = -f elf64 -I ./src
 
 BOOTLOADER_FILES := src/boot/multiboot/multiboot_header.asm src/boot/boot.asm
 BOOTLOADER_BINS := $(BOOTLOADER_FILES:src/%.asm=build/%.o)

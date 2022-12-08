@@ -1,0 +1,4 @@
+%ifndef BOOT_KERNEL_CONSTANTS
+    %define BOOT_KERNEL_CONSTANTS
+KERNEL_POSITION         equ 0xc0000000
+%endif

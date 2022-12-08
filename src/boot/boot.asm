@@ -1,92 +1,49 @@
+;;; Copyright (c) 2022 Maniero
 global start
-
-VGA_START               equ 0xb8000
-VGA_ROW                 equ 80
-VGA_END                 equ VGA_START + VGA_ROW * 25 * 2
-VGA_ERROR_SCREEN_COLOR  equ 0x3F
-KERNEL_POSITION         equ 0xc0000000
-
 bits 32
 
+%include "boot/kernel_constants.asm"
+
+%include "boot/video_services/vga.asm"
+%include "boot/video_services/blue_screen.asm"
+
+%include "boot/cpuid.asm"
+%include "boot/long_mode.asm"
+
     section .text
-clean_screen:
-    mov   eax, VGA_START
-.loop:
-    mov   word [eax], VGA_ERROR_SCREEN_COLOR * 0x100 + ' '
-    add   eax, 2
-    cmp   eax, VGA_END
-    jne   .loop
-    ret
-
-;;; Prints a string to the VGA
-;;; AL:  char
-;;; AH:  String color
-;;; ESI: String pointer
-;;;
-;;; Result:
-;;; EDI: The position after the char
-print_char:
-    mov     word [edi], ax
-    add     edi, 2
-    ret
-
-;;; Prints a string to the VGA
-;;; EDI: Screen position
-;;; AH:  String color
-;;; ESI: String pointer
-;;;
-;;; Result:
-;;; EDI: The position after the string
-print_string:
-.loop:
-    lodsb
+start:
+    ;; TODO: try to simulate this behaviour
+    call    detect_cpuid
     cmp     al, 0
-    je      .ret
+    je      no_cpuid
 
-    call    print_char
-    jmp     .loop
-.ret:
-    ret
-
-;;; Prints a fatal error
-;;;
-;;; ESI: String pointer to error code
-;;; EDI: string pointer to error description
-blue_screen:
-    call    clean_screen
-
-    push    edi
-    push    esi
-    mov     edi, VGA_START
-    lea     esi, [ERROR_TITLE - KERNEL_POSITION]
-    mov     ah, 0xCF
-    call    print_string
-
-    mov     ah, 0xFC
-    mov     al, ' '
-    call    print_char
-
-    pop     esi
-    call    print_string
-
-    pop     esi
-    mov     edi, VGA_START + VGA_ROW * 2 * 2
-    mov     ah, 0x3F
-    call    print_string
+    call    detect_long_mode
+    cmp     al, 0
+    je      no_long_mode
 
     hlt
 
-start:
+no_cpuid:
     lea esi, [ERROR_NO_CPUID_CODE - KERNEL_POSITION]
     lea edi, [ERROR_NO_CPUID_MSG - KERNEL_POSITION]
     jmp blue_screen
 
+no_long_mode:
+    lea esi, [ERROR_NO_LONG_MODE_CODE - KERNEL_POSITION]
+    lea edi, [ERROR_NO_LONG_MODE_MSG - KERNEL_POSITION]
+    jmp blue_screen
+    ;; end section .text
+
     section .data
-ERROR_TITLE         db "Error:", 0
-ERROR_NO_CPUID_CODE db "0x00010000 NoCPUID", 0
-ERROR_NO_CPUID_MSG  db "Sorry! It means your hardware is not compatible with DunnOS :(", 0
+ERROR_NO_CPUID_CODE     db "0x00010000 CPUID not available", 0
+ERROR_NO_CPUID_MSG      db "Sorry! It means your hardware is not compatible with DunnOS :(", 0
+
+ERROR_NO_LONG_MODE_CODE db "0x00010001 Long mode not available", 0
+ERROR_NO_LONG_MODE_MSG  db "It seems you are trying to running DunnOS in a non x86 64 bits machine.", 10, "DunnOS is 64 bits only :(", 0
+    ;; end section .data
 
     section .bss
 stack_bottom:
     resb 64
 stack_top:
+    ;; end section .bss
