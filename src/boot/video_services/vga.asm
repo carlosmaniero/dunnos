@@ -33,10 +33,13 @@ print_char:
 new_line:
     push    eax
     push    ebx
+    push    edx
+    xor     edx, edx
     sub     edi, VGA_START      ; Get the total of chars printed
 
     mov     eax, edi
     mov     ebx, VGA_ROW * 2
+
     div     ebx                 ; Get the total of rows and store it on EAX
 
     inc     eax                 ; Increment one line
@@ -44,6 +47,7 @@ new_line:
     mul     ebx                 ; get the position of the next line
     add     eax, VGA_START      ; set at the right position
     mov     edi, eax
+    pop     edx
     pop     ebx
     pop     eax
     ret
