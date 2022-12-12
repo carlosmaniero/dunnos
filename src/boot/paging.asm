@@ -21,10 +21,10 @@
 ;;;
 ;;; +----------------------------------+
 ;;; | Kernel address:                  |
-;;; |----------------------------------|
+;;; |------------------+---------------|
 ;;; | virtual address  | 0x000C0000000 |
 ;;; | physical address | 0x00000100000 |
-;;; +----------------------------------+
+;;; +------------------+---------------+
 ;;;
 ;;; Paging:
 ;;;
@@ -33,65 +33,126 @@
 ;;;
 ;;; First we need to translate the hex location position to binary:
 ;;;
-;;; +--------------------------------------------------------+
+;;; +--------------+-----------------------------------------+
 ;;; | Hex position | C    0    0    0    0    0    0    0    |
 ;;; | Bin position | 1100 0000 0000 0000 0000 0000 0000 0000 |
-;;; +--------------------------------------------------------+
+;;; +--------------+-----------------------------------------+
 ;;;
 ;;; After we need to group the the bits where every group represents a page level:
 ;;;
-;;; +--------------------------------------------+
+;;; +----------------------------+--------+------+
 ;;; | Level | Level name         | range  | bits |
-;;; +--------------------------------------------+
+;;; +-------+--------------------+--------+------+
 ;;; |     0 | Page offset        | 00..11 | 12   |
 ;;; |     1 | Page table         | 12..20 | 09   |
 ;;; |     2 | Page directory     | 21..29 | 09   |
 ;;; |     3 | Page directory ptr | 30..38 | 09   |
 ;;; |     4 | PML4               | 39..47 | 09   |
-;;; +--------------------------------------------+
+;;; +-------+--------------------+--------+------+
 ;;;
 ;;; Applying this to DunnOS kernel entrypoint:
 ;;;
 ;;; +----------------------------------------------------------------------+
 ;;; | level | PML4      | dir ptr   | directory | table     | offset       |
-;;; |----------------------------------------------------------------------|
+;;; |-------+-----------+-----------+-----------+-----------+--------------|
 ;;; | bin   | 000000000 | 000000011 | 000000000 | 000000000 | 000000000000 |
 ;;; | pos   | 47 ... 39 | 38 ... 30 | 29 ... 21 | 20 ... 12 | 11   ...   0 |
 ;;; | total | 9 bits    | 9 bits    | 9 bits    | 9 bits    | 12 bits      |
-;;; +----------------------------------------------------------------------+
+;;; +-------+-----------+-----------+-----------+-----------+--------------+
 ;;;
-;;; 0xFFFFFFF
 ;;; The scheme above concludes that, the first kernel page is available at:
 ;;;
-;;; PML4: 0
-;;; Directory Pointer: 3
-;;; Directory: 0
-;;; Table: 0
+;;; +-------------------+---+
+;;; | PML4              | 0 |
+;;; | Directory Pointer | 3 |
+;;; | Directory:        | 0 |
+;;; | Table:            | 0 |
+;;; +-------------------+---+
+;;;
+;;; Virtual page layout
+;;; ================================================================================
+;;;
+;;; This is the DunnOS virtual page layout:
+;;;
+;;; +-----------------------------------------------+------+
+;;; | start      | end        | description         | size |
+;;; +-----------------------------------------------+------+
+;;; | 0x00000000 | 0x000FFFFF | multiloader and vga | 1M   |
+;;; | ...        | ...        | ...                 | ...  |
+;;; | 0xC0000000 | 0xC01FFFFF | DunnOS Kernel       | 2M   |
+;;; +-----------------------------------------------+------+
 ;;;
 %ifndef BOOT_PAGING
     %define BOOT_PAGING
-C4_PAE      equ 1 << 5          ; Physical Address Extension: more than 32 bits
-C4_PCIDE    equ 1 << 17         ; process-context identifiers (intel 4.10.1 Process-Context Identifiers (PCIDs))
-C4_LA57     equ 1 << 12         ; Enables 5-level paging
+%include "boot/kernel_constants.asm"
+
+C4_PAE              equ 1 << 5  ; Physical Address Extension: more than 32 bits
+C4_PCIDE            equ 1 << 17 ; process-context identifiers (intel 4.10.1 Process-Context Identifiers (PCIDs))
+C4_LA57             equ 1 << 12 ; Enables 5-level paging
+
+PAGE_PRESENT        equ 1 << 0
+PAGE_WRITABLE       equ 1 << 1
+PAGE_SUPERVISOR     equ 1 << 2
+
+PAGE_SIZE           equ 0x1000  ; 4Kb
+
+PML4_TO_PDPTE_FLAGS equ PAGE_PRESENT | PAGE_WRITABLE | PAGE_SUPERVISOR
+PDPTE_TO_PDE_FLAGS  equ PAGE_PRESENT | PAGE_WRITABLE | PAGE_SUPERVISOR
+PDE_TO_PTABLE_FLAGS equ PAGE_PRESENT | PAGE_WRITABLE | PAGE_SUPERVISOR
+PTABLE_FLAGS        equ PAGE_PRESENT | PAGE_WRITABLE | PAGE_SUPERVISOR
 
     section .text
-
 enable_paging:
-    mov     eax, cr4
-    or      eax, C4_PAE         ; Enable (Physical Address Extension)
-    xor     eax, C4_PCIDE       ; Disables process-context identifier
-    xor     eax, C4_LA57        ; Disables 5-level paging
-    mov     cr4, eax
+    call    setup_page_table
+    ret
+
+setup_page_table:
+    ;; first ptml4 -> pdpte
+    lea     eax, [paging.pdpte - KERNEL_POSITION]
+    or      eax, PML4_TO_PDPTE_FLAGS
+    mov     [paging.pml4 - KERNEL_POSITION], eax
+
+    ;; first pdpte -> identity pde
+    lea     eax, [paging.identity_pde - KERNEL_POSITION]
+    or      eax, PDPTE_TO_PDE_FLAGS
+    mov     [paging.pdpte - KERNEL_POSITION], eax
+
+    ;; identity pde -> identity ptable
+    lea     eax, [paging.identity_ptable - KERNEL_POSITION]
+    or      eax, PDE_TO_PTABLE_FLAGS
+    mov     [paging.identity_pde - KERNEL_POSITION], eax
+
+    mov     ecx, 0
+.identity_ptable_map_loop:
+    mov     eax, ecx
+    mov     ebx, PAGE_SIZE
+    mul     ebx
+    or      eax, PTABLE_FLAGS
+    lea     ebx, [paging.identity_ptable - KERNEL_POSITION + 8 * ecx]
+    mov     [ebx], eax
+    inc     ecx
+    cmp     ecx, 256            ; 1MB
+    jne     .identity_ptable_map_loop
+
+    jmp     $
+
+    ;; =================
+    ;; end section .text
 
     section .bss
-align 4096
+align PAGE_SIZE          ; 4KB (this ensures the last twelve bits are all zeros)
 paging:
 .pml4:
     resq    512
 .pdpte:
     resq    512
-.pde:
+.identity_pde:
     resq    512
-.ptable:
-    resq    512 * 3
+.identity_ptable:
+    resq    512
+.kernel_pde:
+    resq    512
+.kernel_ptable:
+    resq    512
+.end:
 %endif

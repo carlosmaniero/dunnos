@@ -22,6 +22,8 @@ start:
     cmp     al, 0
     je      no_long_mode
 
+    call    enable_paging
+
     hlt
 
 no_cpuid:
