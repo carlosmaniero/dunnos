@@ -9,6 +9,7 @@ bits 32
 
 %include "boot/cpuid.asm"
 %include "boot/long_mode.asm"
+%include "boot/paging.asm"
 
     section .text
 start:
