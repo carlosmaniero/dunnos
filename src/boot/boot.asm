@@ -11,8 +11,11 @@ bits 32
 %include "boot/long_mode.asm"
 %include "boot/paging.asm"
 
+extern kernel_init
+
     section .text
 start:
+    mov esp, stack_top - KERNEL_POSITION
     ;; TODO: try to simulate this behaviour
     call    detect_cpuid
     cmp     al, 0
@@ -24,7 +27,15 @@ start:
 
     call    enable_paging
 
+    mov     eax, enable_gdt
+    jmp     eax
+
+enable_gdt:
+    lgdt    [gdt64.pointer]
+
+    jmp     gdt64.code:kernel_init
     hlt
+
 
 no_cpuid:
     lea esi, [ERROR_NO_CPUID_CODE - KERNEL_POSITION]
@@ -50,3 +61,13 @@ stack_bottom:
     resb 64
 stack_top:
     ;; end section .bss
+
+    section .rodata
+align 8
+gdt64:
+    dq 0 ; zero entry
+.code: equ $ - gdt64 ; new
+    dq (1<<43) | (1<<44) | (1<<47) | (1<<53) ; code segment
+.pointer:
+    dw $ - gdt64 - 1
+    dq gdt64 - KERNEL_POSITION

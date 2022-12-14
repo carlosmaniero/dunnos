@@ -2,7 +2,7 @@ ENTRY(start)
 
 SECTIONS {
     . = 0x00100000;
-	_kernel_start = .;
+    _kernel_start = .;
 
     .boot :
     {
@@ -24,5 +24,10 @@ SECTIONS {
     .bss ALIGN (4K) : AT (ADDR (.bss) - 0xC0000000)
     {
         *(.bss)
+    }
+
+    .rodata ALIGN (4K) : AT (ADDR (.rodata) - 0xC0000000)
+    {
+        *(.rodata)
     }
 }
