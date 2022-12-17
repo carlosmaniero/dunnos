@@ -7,6 +7,7 @@ static HELLO: &[u8] = b"Welcome to DunnOS! With Rust and love!";
 static VGA_ROWS: u16 = 80;
 static VGA_LINES: u16 = 25;
 
+#[no_mangle]
 fn write_char(the_char: u8, color: u8, pos_x: u16, pos_y: u16) {
     let vga_buffer = 0xb8000 as *mut u8;
 
@@ -16,6 +17,7 @@ fn write_char(the_char: u8, color: u8, pos_x: u16, pos_y: u16) {
     }
 }
 
+#[no_mangle]
 fn screen_clear() {
     for line in 0..VGA_LINES {
         for row in 0..VGA_ROWS {

@@ -16,9 +16,16 @@ GRUB_PATH = ${ISO_BUILD_PATH}/boot/grub/
 KERNEL_PATH = ${ISO_BUILD_PATH}/boot
 KERNEL_BIN = ${KERNEL_PATH}/kernel.bin
 
-RUST_TARGET = x86_64-unknown-none
-RUST_PATH = src/kernel
-RUST_KERNEL := ${RUST_PATH}/target/${RUST_TARGET}/debug/libkernel.a
+RUST_TARGET = x86_64-kernel
+KERNEL_RUST_PATH = src/kernel
+CARGO_MODE = release
+
+CARGO_FLAGS = --lib
+ifeq (${CARGO_MODE}, release)
+	CARGO_FLAGS += --release
+endif
+
+RUST_KERNEL := build/kernel/${RUST_TARGET}/release/libkernel.a
 
 ISO = build/dunnos.iso
 
@@ -34,13 +41,9 @@ $(KERNEL_BIN): $(BOOTLOADER_BINS) $(RUST_KERNEL)
 	@mkdir -p ${KERNEL_PATH}
 	@ld -m elf_x86_64 -n -o ${KERNEL_BIN} -T linker.ld $^
 
-$(RUST_TARGET):
-	@echo "Fetching rust target"
-	@rustup target install ${RUST_TARGET}
-
 $(RUST_KERNEL):
 	@echo "Building the rust kernel"
-	@cd ${RUST_PATH}; cargo build --target=${RUST_TARGET}
+	cd ${KERNEL_RUST_PATH}; cargo build ${CARGO_FLAGS}
 
 $(ISO): $(KERNEL_BIN)
 	@echo "Making ISO image: $@"
