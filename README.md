@@ -36,8 +36,8 @@ you have it installed before to proceed.
 - [x] Bootloader
     - [x] Multiboot
 - [x] Entering protected mode (4 free with grub)
-- [ ] Entering long mode
-- [ ] Paging
+- [x] Entering long mode
+- [x] Paging
 - [ ] FAT filesystem
 - [ ] Multitask
 - [ ] X Server
